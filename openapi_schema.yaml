@@ -1,0 +1,317 @@
+openapi: 3.0.3
+info:
+  title: Google News Adverse Media Search Service
+  description: |
+    A web service that searches Google News for adverse media coverage related to companies, persons, or entities. 
+    The service evaluates articles based on relevance scores and returns results with clean URLs and summaries.
+    
+    This API is designed for reputational risk assessment, compliance screening, and due diligence purposes.
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: youssef.sayegh@symphonyai.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://google-news-adverse-media.azurewebsites.net
+    description: Production server on Azure
+
+paths:
+  /health:
+    get:
+      summary: Health Check
+      description: Returns the health status of the service
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "healthy"
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2025-07-01T09:30:00.000Z"
+
+  /search:
+    post:
+      summary: Search Adverse Media
+      description: |
+        Search Google News for adverse media coverage related to a specific subject.
+        
+        This endpoint searches for news articles that contain both the search subject and adverse keywords,
+        then calculates relevance scores based on keyword matching and context analysis.
+        
+        **Use Cases:**
+        - Reputational risk assessment
+        - Due diligence screening
+        - Compliance monitoring
+        - Background checks
+        
+        **Relevance Scoring:**
+        - Articles are scored 0-100% based on subject match and adverse keyword presence
+        - Only articles with 15%+ relevance are returned
+        - Results are sorted by relevance score (highest first)
+      operationId: searchAdverseMedia
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - search_subject
+                - adverse_keywords
+              properties:
+                search_subject:
+                  type: string
+                  description: The name of the company, person, or entity to search for adverse media coverage
+                  example: "Tesla Inc"
+                  minLength: 1
+                  maxLength: 200
+                adverse_keywords:
+                  type: array
+                  description: |
+                    List of adverse keywords to search for in relation to the subject.
+                    Common adverse keywords include: fraud, lawsuit, investigation, scandal, 
+                    controversy, violation, penalty, fine, corruption, breach, misconduct, 
+                    allegations, criminal, prosecution, settlement, sanctions, embezzlement, 
+                    bribery, money laundering, tax evasion, regulatory action, compliance violation
+                  items:
+                    type: string
+                    minLength: 1
+                    maxLength: 50
+                  minItems: 1
+                  maxItems: 10
+                  example: ["lawsuit", "investigation", "fraud", "recall"]
+            examples:
+              company_search:
+                summary: Company adverse media search
+                value:
+                  search_subject: "Tesla Inc"
+                  adverse_keywords: ["lawsuit", "investigation", "fraud", "recall"]
+              person_search:
+                summary: Individual adverse media search
+                value:
+                  search_subject: "John Doe"
+                  adverse_keywords: ["fraud", "embezzlement", "criminal", "investigation"]
+              financial_search:
+                summary: Financial institution search
+                value:
+                  search_subject: "Goldman Sachs"
+                  adverse_keywords: ["penalty", "fine", "regulatory action", "compliance violation"]
+      
+      responses:
+        '200':
+          description: Search completed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: ["success"]
+                    example: "success"
+                  data:
+                    type: object
+                    properties:
+                      total_count:
+                        type: integer
+                        description: Total number of relevant articles found
+                        example: 3
+                      results:
+                        type: array
+                        description: List of relevant articles sorted by relevance score
+                        items:
+                          type: object
+                          properties:
+                            title:
+                              type: string
+                              description: Article headline
+                              example: "Tesla Faces Investigation Over Safety Claims"
+                            link:
+                              type: string
+                              format: uri
+                              description: Clean URL to the original article (tracking parameters removed)
+                              example: "https://www.reuters.com/business/tesla-investigation-2025"
+                            summary:
+                              type: string
+                              description: Brief article summary (max 200 characters)
+                              example: "Tesla is under investigation by federal regulators over safety claims related to their autonomous driving technology..."
+                            relevance_score:
+                              type: string
+                              description: Relevance percentage (0-100%)
+                              pattern: "^\\d{1,3}%$"
+                              example: "85%"
+                  timestamp:
+                    type: string
+                    format: date-time
+                    description: When the search was performed
+                    example: "2025-07-01T09:30:00.000Z"
+              examples:
+                successful_search:
+                  summary: Successful search with results
+                  value:
+                    status: "success"
+                    data:
+                      total_count: 2
+                      results:
+                        - title: "Tesla Faces Investigation Over Safety Claims"
+                          link: "https://www.reuters.com/business/tesla-investigation-2025"
+                          summary: "Tesla is under investigation by federal regulators over safety claims..."
+                          relevance_score: "85%"
+                        - title: "Lawsuit Filed Against Tesla Over Defective Parts"
+                          link: "https://www.bloomberg.com/news/tesla-lawsuit-2025"
+                          summary: "A class-action lawsuit has been filed against Tesla alleging defective parts..."
+                          relevance_score: "72%"
+                    timestamp: "2025-07-01T09:30:00.000Z"
+                no_results:
+                  summary: Search with no relevant results
+                  value:
+                    status: "success"
+                    data:
+                      total_count: 0
+                      results: []
+                    timestamp: "2025-07-01T09:30:00.000Z"
+
+        '400':
+          description: Bad request - Invalid input parameters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error description
+                examples:
+                  missing_field:
+                    summary: Missing required field
+                    value:
+                      error: "Missing required field: search_subject"
+                  invalid_type:
+                    summary: Invalid field type
+                    value:
+                      error: "adverse_keywords must be a non-empty list"
+                  empty_string:
+                    summary: Empty search subject
+                    value:
+                      error: "search_subject must be a non-empty string"
+
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: ["error"]
+                    example: "error"
+                  error:
+                    type: string
+                    description: Error description
+                    example: "Search failed: Connection timeout"
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2025-07-01T09:30:00.000Z"
+
+        '404':
+          description: Endpoint not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Endpoint not found"
+
+components:
+  schemas:
+    SearchRequest:
+      type: object
+      required:
+        - search_subject
+        - adverse_keywords
+      properties:
+        search_subject:
+          type: string
+          description: The entity to search for
+          minLength: 1
+          maxLength: 200
+        adverse_keywords:
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 50
+          minItems: 1
+          maxItems: 10
+          description: List of adverse keywords
+
+    ArticleResult:
+      type: object
+      properties:
+        title:
+          type: string
+          description: Article headline
+        link:
+          type: string
+          format: uri
+          description: Clean URL to the article
+        summary:
+          type: string
+          description: Brief article summary
+        relevance_score:
+          type: string
+          pattern: "^\\d{1,3}%$"
+          description: Relevance percentage
+
+    SearchResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: ["success"]
+        data:
+          type: object
+          properties:
+            total_count:
+              type: integer
+              minimum: 0
+            results:
+              type: array
+              items:
+                $ref: '#/components/schemas/ArticleResult'
+        timestamp:
+          type: string
+          format: date-time
+
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: ["error"]
+        error:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+tags:
+  - name: search
+    description: Adverse media search operations
+  - name: health
+    description: Service health monitoring
