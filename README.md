@@ -23,20 +23,39 @@ This is a Python-based web service that uses the Google News to perform searches
 
 ## Usage
 
-1. **Install Dependencies**:
-   - Navigate to the project folder and install required packages:
+1. **Set Up Virtual Environment**:
+   - Navigate to the project folder and create a virtual environment:
+     ```bash
+     python -m venv venv
+     ```
+   - Activate the virtual environment:
+     - On Windows (PowerShell):
+       ```bash
+       .\venv\Scripts\Activate.ps1
+       ```
+     - On Windows (Command Prompt):
+       ```bash
+       .\venv\Scripts\activate.bat
+       ```
+     - On macOS/Linux:
+       ```bash
+       source venv/bin/activate
+       ```
+
+2. **Install Dependencies**:
+   - With the virtual environment activated, install required packages:
      ```bash
      pip install -r requirements.txt
      ```
 
-2. **Run the Service**:
+3. **Run the Service**:
    - Start the web service by running:
      ```bash
      python app.py
      ```
    - The service will be available at `http://localhost:5000`
 
-3. **API Endpoints**:
+4. **API Endpoints**:
    - **Health Check**:
      - `GET /health`
      - Returns health status of the service.
@@ -52,7 +71,7 @@ This is a Python-based web service that uses the Google News to perform searches
        ```
      - Returns a list of relevant articles with scores.
 
-4. **Example Request**:
+5. **Example Request**:
    ```bash
    curl -X POST http://localhost:5000/search -H "Content-Type: application/json" -d '{"api_key": "your_api_key", "search_subject": "Some Subject", "adverse_keywords": ["keyword1", "keyword2"]}'
    ```
