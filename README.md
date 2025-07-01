@@ -6,11 +6,10 @@ This is a Python-based web service that uses the Google News to perform searches
 
 - **Synchronous Web Service**: Designed to be simple without asynchronous complexity.
 - **Input Parameters**:
-  - API key (string)
   - Search subject (string)
   - Adverse media keywords (list of strings)
 - **Functionality**:
-  - Searches Google News for articles related to the search subject.
+  - Cleans article URLs to remove Google tracking parameters.
   - Evaluates each article's relevance based on subject and adverse media keywords.
   - Assigns a relevance score to each article (expressed as a percentage).
 - **Response Structure**:
@@ -64,7 +63,6 @@ This is a Python-based web service that uses the Google News to perform searches
      - **Expected JSON Payload**:
        ```json
        {
-         "api_key": "your_api_key",
          "search_subject": "Company or person name",
          "adverse_keywords": ["fraud", "lawsuit", "investigation"]
        }
@@ -73,7 +71,7 @@ This is a Python-based web service that uses the Google News to perform searches
 
 5. **Example Request**:
    ```bash
-   curl -X POST http://localhost:5000/search -H "Content-Type: application/json" -d '{"api_key": "your_api_key", "search_subject": "Some Subject", "adverse_keywords": ["keyword1", "keyword2"]}'
+   curl -X POST http://localhost:5000/search -H "Content-Type: application/json" -d '{"search_subject": "Some Subject", "adverse_keywords": ["keyword1", "keyword2"]}'
    ```
 
 ## License
