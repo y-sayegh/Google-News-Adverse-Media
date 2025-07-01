@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify
-from googlenews import GoogleNews
+from GoogleNews import GoogleNews
 import re
 from datetime import datetime, timedelta
 from typing import List, Dict, Any
@@ -58,13 +58,11 @@ class AdverseMediaSearcher:
         total_score = min(100, subject_score + adverse_score + context_bonus)
         return round(total_score, 2)
     
-    def search_adverse_media(self, api_key: str, subject: str, adverse_keywords: List[str]) -> Dict[str, Any]:
+    def search_adverse_media(self, subject: str, adverse_keywords: List[str]) -> Dict[str, Any]:
         """
         Search Google News for adverse media related to the subject
         """
         try:
-            # Note: GoogleNews library doesn't require API key for basic searches
-            # but we keep the parameter for future API integration
             
             # Create search query combining subject and adverse keywords
             search_query = f"{subject} {' OR '.join(adverse_keywords[:3])}"  # Limit to first 3 keywords to avoid too long query
@@ -129,7 +127,6 @@ def search_adverse_media():
     
     Expected JSON payload:
     {
-        "api_key": "your_api_key",
         "search_subject": "Company or person name",
         "adverse_keywords": ["fraud", "lawsuit", "investigation"]
     }
@@ -142,18 +139,15 @@ def search_adverse_media():
         data = request.get_json()
         
         # Validate required fields
-        required_fields = ['api_key', 'search_subject', 'adverse_keywords']
+        required_fields = ['search_subject', 'adverse_keywords']
         for field in required_fields:
             if field not in data:
                 return jsonify({'error': f'Missing required field: {field}'}), 400
         
-        api_key = data['api_key']
         search_subject = data['search_subject']
         adverse_keywords = data['adverse_keywords']
         
         # Validate field types
-        if not isinstance(api_key, str) or not api_key.strip():
-            return jsonify({'error': 'api_key must be a non-empty string'}), 400
         
         if not isinstance(search_subject, str) or not search_subject.strip():
             return jsonify({'error': 'search_subject must be a non-empty string'}), 400
@@ -166,7 +160,6 @@ def search_adverse_media():
         
         # Perform search
         results = adverse_media_searcher.search_adverse_media(
-            api_key=api_key,
             subject=search_subject,
             adverse_keywords=adverse_keywords
         )
