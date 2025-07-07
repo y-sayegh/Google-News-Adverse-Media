@@ -5,6 +5,12 @@ from datetime import datetime, timedelta
 from typing import List, Dict, Any
 import logging
 import urllib.parse
+import spacy
+try:
+    nlp = spacy.load("en_core_web_sm")
+except OSError:
+    print("Warning: spaCy English model not found. Please install it with: python -m spacy download en_core_web_sm")
+    nlp = None
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -16,7 +22,7 @@ class AdverseMediaSearcher:
     def __init__(self):
         self.google_news = GoogleNews()
         self.google_news.set_lang('en')
-        self.google_news.set_period('7d')  # Search last 7 days
+        self.google_news.set_period('3m')  # Search last 3 months
         self.google_news.set_encode('utf-8')
     
     def clean_google_url(self, url: str) -> str:
@@ -100,6 +106,68 @@ class AdverseMediaSearcher:
         
         total_score = min(100, subject_score + adverse_score + context_bonus)
         return round(total_score, 2)
+    
+    def analyze_entities(self, search_results: List[Dict[str, Any]]) -> List[Dict[str, str]]:
+        """
+        Analyze search results and extract entities from titles and summaries.
+        Returns a list of dictionaries with entity_type: entity_name for each search result.
+        """
+        if not nlp:
+            logger.warning("spaCy model not loaded. Cannot perform entity analysis.")
+            return []
+        
+        entity_analysis = []
+        
+        for result in search_results:
+            title = result.get('title', '')
+            summary = result.get('summary', '')
+            
+            # Combine title and summary for entity extraction
+            text = f"{title} {summary}"
+            
+            # Process text with spaCy
+            doc = nlp(text)
+            
+            # Extract entities and create dictionary
+            entities_dict = {}
+            for ent in doc.ents:
+                # Map spaCy entity labels to more readable names
+                entity_type = self._map_entity_type(ent.label_)
+                entity_name = ent.text.strip()
+                
+                # Only include meaningful entities (avoid single characters, numbers, etc.)
+                if len(entity_name) > 2 and not entity_name.isdigit():
+                    entities_dict[entity_type] = entity_name
+            
+            entity_analysis.append(entities_dict)
+        
+        return entity_analysis
+    
+    def _map_entity_type(self, spacy_label: str) -> str:
+        """
+        Map spaCy entity labels to more readable entity types
+        """
+        mapping = {
+            'PERSON': 'person',
+            'ORG': 'organization',
+            'GPE': 'location',
+            'LOC': 'location',
+            'NORP': 'group',
+            'FACILITY': 'facility',
+            'PRODUCT': 'product',
+            'EVENT': 'event',
+            'WORK_OF_ART': 'work_of_art',
+            'LAW': 'law',
+            'LANGUAGE': 'language',
+            'DATE': 'date',
+            'TIME': 'time',
+            'PERCENT': 'percentage',
+            'MONEY': 'money',
+            'QUANTITY': 'quantity',
+            'ORDINAL': 'ordinal',
+            'CARDINAL': 'cardinal'
+        }
+        return mapping.get(spacy_label, spacy_label.lower())
     
     def search_adverse_media(self, subject: str, adverse_keywords: List[str]) -> Dict[str, Any]:
         """
@@ -224,6 +292,123 @@ def search_adverse_media():
             'timestamp': datetime.now().isoformat()
         }), 500
 
+@app.route('/search-with-entities', methods=['POST'])
+def search_adverse_media_with_entities():
+    """
+    Search for adverse media articles and analyze entities
+    
+    Expected JSON payload:
+    {
+        "search_subject": "Company or person name",
+        "adverse_keywords": ["fraud", "lawsuit", "investigation"]
+    }
+    """
+    try:
+        # Validate request
+        if not request.is_json:
+            return jsonify({'error': 'Request must be JSON'}), 400
+        
+        data = request.get_json()
+        
+        # Validate required fields
+        required_fields = ['search_subject', 'adverse_keywords']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({'error': f'Missing required field: {field}'}), 400
+        
+        search_subject = data['search_subject']
+        adverse_keywords = data['adverse_keywords']
+        
+        # Validate field types
+        if not isinstance(search_subject, str) or not search_subject.strip():
+            return jsonify({'error': 'search_subject must be a non-empty string'}), 400
+        
+        if not isinstance(adverse_keywords, list) or len(adverse_keywords) == 0:
+            return jsonify({'error': 'adverse_keywords must be a non-empty list'}), 400
+        
+        if not all(isinstance(kw, str) and kw.strip() for kw in adverse_keywords):
+            return jsonify({'error': 'All adverse_keywords must be non-empty strings'}), 400
+        
+        # Perform search
+        results = adverse_media_searcher.search_adverse_media(
+            subject=search_subject,
+            adverse_keywords=adverse_keywords
+        )
+        
+        # Analyze entities in search results
+        entity_analysis = adverse_media_searcher.analyze_entities(results['results'])
+        
+        return jsonify({
+            'status': 'success',
+            'data': {
+                'search_results': results,
+                'entity_analysis': entity_analysis
+            },
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in search-with-entities endpoint: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'error': str(e),
+            'timestamp': datetime.now().isoformat()
+        }), 500
+
+@app.route('/analyze-entities', methods=['POST'])
+def analyze_entities():
+    """
+    Analyze entities in provided search results
+    
+    Expected JSON payload:
+    {
+        "search_results": [
+            {
+                "title": "Article title",
+                "summary": "Article summary"
+            }
+        ]
+    }
+    """
+    try:
+        # Validate request
+        if not request.is_json:
+            return jsonify({'error': 'Request must be JSON'}), 400
+        
+        data = request.get_json()
+        
+        # Validate required fields
+        if 'search_results' not in data:
+            return jsonify({'error': 'Missing required field: search_results'}), 400
+        
+        search_results = data['search_results']
+        
+        # Validate field types
+        if not isinstance(search_results, list):
+            return jsonify({'error': 'search_results must be a list'}), 400
+        
+        if not search_results:
+            return jsonify({'error': 'search_results cannot be empty'}), 400
+        
+        # Analyze entities
+        entity_analysis = adverse_media_searcher.analyze_entities(search_results)
+        
+        return jsonify({
+            'status': 'success',
+            'data': {
+                'entity_analysis': entity_analysis
+            },
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in analyze-entities endpoint: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'error': str(e),
+            'timestamp': datetime.now().isoformat()
+        }), 500
+
 @app.errorhandler(404)
 def not_found(error):
     return jsonify({'error': 'Endpoint not found'}), 404
@@ -241,6 +426,8 @@ if __name__ == '__main__':
     print("Available endpoints:")
     print("  GET  /health - Health check")
     print("  POST /search - Search for adverse media")
+    print("  POST /search-with-entities - Search for adverse media and analyze entities")
+    print("  POST /analyze-entities - Analyze entities in provided search results")
     print(f"\nServer running on port {port}")
     
     app.run(debug=debug, host='0.0.0.0', port=port)

@@ -2,8 +2,10 @@ openapi: 3.0.3
 info:
   title: Google News Adverse Media Search Service
   description: |
-    A web service that searches Google News for adverse media coverage related to companies, persons, or entities. 
+    A web service that searches Google News for adverse media coverage related to companies, persons, or entities within the last 3 months. 
     The service evaluates articles based on relevance scores and returns results with clean URLs and summaries.
+    
+    **NEW**: Entity analysis using Named Entity Recognition (NER) to extract entities from search results.
     
     This API is designed for reputational risk assessment, compliance screening, and due diligence purposes.
   version: 1.0.0

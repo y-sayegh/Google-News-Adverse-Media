@@ -69,7 +69,7 @@
 │  │ - Set language  │    │ - Combine       │    │ - Clear previous        │ │
 │  │   (English)     │    │   subject +     │    │   results               │ │
 │  │ - Set period    │    │   keywords      │    │ - Execute search        │ │
-│  │   (7 days)      │    │ - Limit to 3    │    │ - Get raw results       │ │
+│  │   (3 months)    │    │ - Limit to 3    │    │ - Get raw results       │ │
 │  │ - Set encoding  │    │   keywords max  │    │                         │ │
 │  │   (UTF-8)       │    │                 │    │                         │ │
 │  └─────────────────┘    └─────────────────┘    └─────────────────────────┘ │
@@ -195,7 +195,7 @@ Total Score = Subject Score + Adverse Keywords Score + Context Bonus
 Query Format: "{search_subject} {keyword1} OR {keyword2} OR {keyword3}"
 - Limited to first 3 keywords to avoid overly long queries
 - Combines subject with OR logic for keywords
-- Searches within last 7 days of news
+- Searches within last 3 months of news
 ```
 
 ### 4. **Data Flow Example**
@@ -208,7 +208,7 @@ Input:
 
 Processing:
 1. Query: "Tesla Inc lawsuit OR investigation OR fraud"
-2. Search Google News (7 days)
+2. Search Google News (3 months)
 3. For each article:
    - Calculate relevance score
    - Filter if score >= 15%
@@ -237,10 +237,11 @@ Output:
 
 - **Language**: Python (Flask framework)
 - **Search Engine**: Google News API
-- **Search Period**: Last 7 days
+- **Search Period**: Last 3 months
 - **Language Filter**: English only
 - **Scoring**: 0-100% relevance based on keyword matching
 - **URL Cleaning**: Removes tracking parameters
 - **Response Format**: JSON with metadata
 - **Error Handling**: Comprehensive logging and error responses
+- **Entity Analysis**: Named Entity Recognition using spaCy
 - **Deployment**: Azure App Service ready
