@@ -32,7 +32,17 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip setuptools wheel
-          pip install --no-cache-dir -r requirements.txt
+          # Install numpy first to ensure binary compatibility
+          pip install --no-cache-dir numpy==1.24.3
+          # Install Flask and core dependencies first
+          pip install --no-cache-dir Flask==2.3.3 GoogleNews==1.6.14 requests==2.31.0 python-dateutil==2.8.2 Werkzeug==2.3.7 gunicorn==21.2.0
+          # Install spaCy dependencies with forced compilation to match numpy
+          pip install --no-cache-dir --force-reinstall --no-binary=:all: blis==0.7.10 cymem==2.0.7 murmurhash==1.0.9 preshed==3.0.8
+          # Install remaining spaCy components
+          pip install --no-cache-dir thinc==8.1.12 wasabi==1.1.2 srsly==2.4.6 typer==0.9.0 smart-open==6.3.0 packaging==23.1
+          # Install spaCy last
+          pip install --no-cache-dir spacy==3.6.1
+          # Download spaCy model
           python -m spacy download en_core_web_sm
         
       # Optional: Add step to run tests here (PyTest, Django test suites, etc.)

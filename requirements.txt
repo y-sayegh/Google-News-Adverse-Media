@@ -1,9 +1,13 @@
+# Core dependencies with numpy compatibility
+numpy==1.24.3
 Flask==2.3.3
 GoogleNews==1.6.14
 requests==2.31.0
 python-dateutil==2.8.2
 Werkzeug==2.3.7
 gunicorn==21.2.0
+
+# spaCy and its dependencies - compatible versions
 spacy==3.6.1
 blis==0.7.10
 cymem==2.0.7
@@ -11,3 +15,7 @@ murmurhash==1.0.9
 preshed==3.0.8
 thinc==8.1.12
 wasabi==1.1.2
+srsly==2.4.6
+typer==0.9.0
+smart-open==6.3.0
+packaging==23.1
