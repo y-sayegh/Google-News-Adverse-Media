@@ -31,7 +31,8 @@ jobs:
       
       - name: Install dependencies
         run: |
-          pip install -r requirements.txt
+          pip install --upgrade pip setuptools wheel
+          pip install --no-cache-dir -r requirements.txt
           python -m spacy download en_core_web_sm
         
       # Optional: Add step to run tests here (PyTest, Django test suites, etc.)
